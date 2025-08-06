@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palm Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <section class="chat-window">
+        <button class="close"><p class="x">x</p></button>
+        <div class="chat"> 
+            <div class="model">
+                <p>Hi, how can I help you? You can also upload documents and ask questions about them!</p>
+            </div>    
+        </div>
+        <div class="input-area">
+            <input type="text" placeholder="Ask me anything...">
+            <input type="file" class="file-input" accept=".pdf,.doc,.docx,.txt,.md,.csv" style="display: none;">
+            <button class="upload-btn" title="Upload Document">📎</button>
+            <button class="send-btn" title="Send Message">
+                ➤
+            </button>
+        </div>
+    </section>
+    <button class="display-btn" title="show Chatbot" onclick="hideandshow()">
+        <img src="1.jpg" alt="palm mind bot picture">
+    </button>
+    <script src="main.js"></script>
+</body>
+</html>
