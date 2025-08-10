@@ -1,4 +1,8 @@
 {
+   "name": "palmchatbot",
+  "version": "1.0.0",
+  "description": "AI Chatbot with appointment booking",
+  "main": "server2.js",
   "type": "module",
   "dependencies": {
     "@google/genai": "^1.12.0",
@@ -16,5 +20,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
