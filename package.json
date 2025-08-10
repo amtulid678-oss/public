@@ -1,5 +1,5 @@
 {
-   "name": "palmchatbot",
+  "name": "palmchatbot",
   "version": "1.0.0",
   "description": "AI Chatbot with appointment booking",
   "main": "server2.js",

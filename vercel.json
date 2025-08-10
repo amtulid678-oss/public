@@ -1,18 +1,31 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "runtime": "@vercel/node"
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/chat",
+      "dest": "/api/index.js"
     },
     {
-      "source": "/(chat|appointments|test|chat-with-file)",
-      "destination": "/api/index.js"
+      "src": "/chat-with-file",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/appointments",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/test",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ],
   "env": {
