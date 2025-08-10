@@ -7,8 +7,9 @@ const app = express();
 const PORT = 3000;
 
 // Create uploads directory if it doesn't exist
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
+const uploadsDir = '/tmp/uploads';
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Create appointments.csv file if it doesn't exist
