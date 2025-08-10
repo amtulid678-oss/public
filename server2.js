@@ -23,8 +23,7 @@ app.use(express.text());
 app.use(express.static('.'));
 
 // Initialize Google GenAI with the correct SDK
-const genAI = new GoogleGenerativeAI('AIzaSyC63CwDLGDByxWmUXVjYRb-35xks2kxIFg');
-
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 // Get the model
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -426,10 +425,10 @@ app.get('/test', (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log('Using memory storage for files and appointments');
-});
+// app.listen(PORT, () => {
+//   console.log(`Server running on http://localhost:${PORT}`);
+//   console.log('Using memory storage for files and appointments');
+// });
 
 // Export the Express API
 export default app;
