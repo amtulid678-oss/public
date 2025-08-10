@@ -7,22 +7,13 @@ import path from "path";
 const app = express();
 const PORT = 3000;
 
-// Create appointments.csv file path - use /tmp for Vercel
-const csvFilePath = '/tmp/appointments.csv';
-
-// Configure multer for file uploads - use /tmp directory for Vercel
+// Configure multer with memory storage to avoid file system issues
 const upload = multer({ 
-  dest: '/tmp/uploads/',
+  storage: multer.memoryStorage(), // Store in memory instead of disk
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   }
 });
-
-// Ensure /tmp/uploads directory exists
-const uploadsDir = '/tmp/uploads';
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
 
 // Middleware
 app.use(express.json());
@@ -49,8 +40,11 @@ let chatHistory = [
   },
 ];
 
-// Store user sessions for appointment booking
+// Store user sessions for appointment booking (in memory for now)
 const userSessions = new Map();
+
+// Store appointments in memory (temporary solution)
+const appointments = [];
 
 // Helper function to check if message indicates appointment booking
 function isAppointmentRequest(message) {
@@ -127,31 +121,26 @@ function isValidAppointmentTime(timeStr) {
   return validTimes.includes(normalizedTime);
 }
 
-// Function to save appointment to CSV
-function saveAppointmentToCSV(appointmentData) {
+// Function to save appointment (in memory for now)
+function saveAppointment(appointmentData) {
   const { name, email, phone, purpose, appointmentTime} = appointmentData;
-  const currentDate = new Date().toISOString().split('T')[0];
   const appointmentDate = getNextBusinessDay().toISOString().split('T')[0];
-  const status = 'Scheduled';
   
-  // Initialize CSV file with headers if it doesn't exist
-  if (!fs.existsSync(csvFilePath)) {
-    const headers = 'Date,Name,Email,Phone,Purpose,Appointment Time,Status\n';
-    fs.writeFileSync(csvFilePath, headers);
-  }
+  const appointment = {
+    id: Date.now().toString(),
+    date: appointmentDate,
+    name,
+    email,
+    phone,
+    purpose: purpose || 'General consultation',
+    appointmentTime,
+    status: 'Scheduled',
+    createdAt: new Date().toISOString()
+  };
   
-  // Escape quotes in data and wrap in quotes
-  const escapedName = `"${name.replace(/"/g, '""')}"`;
-  const escapedEmail = `"${email.replace(/"/g, '""')}"`;
-  const escapedPhone = `"${phone.replace(/"/g, '""')}"`;
-  const escapedPurpose = `"${(purpose || 'General consultation').replace(/"/g, '""')}"`;
-  const escapedTime = `"${appointmentTime.replace(/"/g, '""')}"`;
-  const escapedStatus = `"${status}"`;
-  
-  const csvRow = `${appointmentDate},${escapedName},${escapedEmail},${escapedPhone},${escapedPurpose},${escapedTime},${escapedStatus}\n`;
-  
-  console.log('Saving appointment:', csvRow);
-  fs.appendFileSync(csvFilePath, csvRow);
+  appointments.push(appointment);
+  console.log('Appointment saved in memory:', appointment);
+  return true;
 }
 
 // Handle appointment booking flow
@@ -218,10 +207,10 @@ function handleAppointmentFlow(sessionId, message, sessionData) {
       } else {
         sessionData.appointmentTime = appointmentTime;
         
-        // Save to CSV
+        // Save appointment
         try {
           console.log('Attempting to save appointment:', sessionData);
-          saveAppointmentToCSV(sessionData);
+          saveAppointment(sessionData);
           
           const appointmentDate = getNextBusinessDay().toLocaleDateString('en-US', { 
             weekday: 'long', 
@@ -238,7 +227,7 @@ function handleAppointmentFlow(sessionId, message, sessionData) {
 🎯 Purpose: ${sessionData.purpose}
 ⏰ Time: ${sessionData.appointmentTime} on ${appointmentDate}
 
-You'll receive a confirmation email shortly. Is there anything else I can help you with?`;
+Your appointment has been saved. Is there anything else I can help you with?`;
           
           // Clear session after successful booking
           userSessions.delete(sessionId);
@@ -261,15 +250,6 @@ You'll receive a confirmation email shortly. Is there anything else I can help y
   console.log('Updated session data:', sessionData);
   
   return { response, isComplete: false };
-}
-
-// Function to read file content
-function readFileContent(filePath) {
-  try {
-    return fs.readFileSync(filePath, 'utf8');
-  } catch (error) {
-    throw new Error(`Error reading file: ${error.message}`);
-  }
 }
 
 // Regular chat endpoint
@@ -350,7 +330,7 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// File upload chat endpoint
+// File upload chat endpoint (using memory storage)
 app.post('/chat-with-file', upload.single('file'), async (req, res) => {
   try {
     const { message, sessionId } = req.body;
@@ -364,15 +344,11 @@ app.post('/chat-with-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    // Read file content (for now, only handle text files)
+    // Read file content from memory buffer
     let fileContent = '';
     try {
-      fileContent = readFileContent(file.path);
+      fileContent = file.buffer.toString('utf8');
     } catch (error) {
-      // Clean up file
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
       return res.status(400).json({ error: 'Could not read file. Please ensure it is a text file.' });
     }
     
@@ -408,73 +384,40 @@ app.post('/chat-with-file', upload.single('file'), async (req, res) => {
     
     console.log("File analysis response received");
     
-    // Clean up uploaded file
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
+    // No need to clean up files since we're using memory storage
     
     // Send response back to client
     res.json({ response: botResponse });
     
   } catch (error) {
     console.error("Error processing file chat:", error);
-    
-    // Clean up file if it exists
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
     res.status(500).json({ error: 'Error processing file: ' + error.message });
   }
 });
 
-// New endpoint to view appointments (optional - for admin use)
+// Endpoint to view appointments (from memory)
 app.get('/appointments', (req, res) => {
   try {
-    if (fs.existsSync(csvFilePath)) {
-      const csvContent = fs.readFileSync(csvFilePath, 'utf8');
-      const lines = csvContent.split('\n').filter(line => line.trim());
-      
-      if (lines.length <= 1) {
-        return res.json({ appointments: [] });
-      }
-      
-      // Convert CSV to JSON for easier viewing
-      const headers = ['Date', 'Name', 'Email', 'Phone', 'Purpose', 'Appointment Time', 'Status'];
-      const appointments = lines.slice(1).map(line => {
-        // Simple CSV parsing - handle quoted values
-        const values = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        values.push(current.trim()); // Add last value
-        
-        const appointment = {};
-        headers.forEach((header, index) => {
-          appointment[header] = values[index] ? values[index].replace(/^"|"$/g, '') : '';
-        });
-        return appointment;
-      });
-      
-      res.json({ appointments });
-    } else {
-      res.json({ appointments: [] });
-    }
+    // Return appointments sorted by creation date (newest first)
+    const sortedAppointments = appointments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ appointments: sortedAppointments });
   } catch (error) {
     console.error("Error reading appointments:", error);
     res.status(500).json({ error: 'Error reading appointments: ' + error.message });
   }
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Chatbot API is running!',
+    endpoints: {
+      chat: 'POST /chat',
+      fileUpload: 'POST /chat-with-file',
+      appointments: 'GET /appointments',
+      test: 'GET /test'
+    }
+  });
 });
 
 // Test endpoint
@@ -485,6 +428,8 @@ app.get('/test', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log('Upload directory created/verified at /tmp/uploads');
-  console.log('Appointments CSV file ready at /tmp/appointments.csv');
+  console.log('Using memory storage for files and appointments');
 });
+
+// Export the Express API
+export default app;
