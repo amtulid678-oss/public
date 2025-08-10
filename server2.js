@@ -2,20 +2,27 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import multer from "multer";
 import fs from "fs";
+import path from "path";
 
 const app = express();
 const PORT = 3000;
 
-// Create appointments.csv file if it doesn't exist
-const csvFilePath = 'appointments.csv';
+// Create appointments.csv file path - use /tmp for Vercel
+const csvFilePath = '/tmp/appointments.csv';
 
-// Configure multer for file uploads
+// Configure multer for file uploads - use /tmp directory for Vercel
 const upload = multer({ 
-  dest: 'uploads/',
+  dest: '/tmp/uploads/',
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   }
 });
+
+// Ensure /tmp/uploads directory exists
+const uploadsDir = '/tmp/uploads';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Middleware
 app.use(express.json());
@@ -126,6 +133,12 @@ function saveAppointmentToCSV(appointmentData) {
   const currentDate = new Date().toISOString().split('T')[0];
   const appointmentDate = getNextBusinessDay().toISOString().split('T')[0];
   const status = 'Scheduled';
+  
+  // Initialize CSV file with headers if it doesn't exist
+  if (!fs.existsSync(csvFilePath)) {
+    const headers = 'Date,Name,Email,Phone,Purpose,Appointment Time,Status\n';
+    fs.writeFileSync(csvFilePath, headers);
+  }
   
   // Escape quotes in data and wrap in quotes
   const escapedName = `"${name.replace(/"/g, '""')}"`;
@@ -357,7 +370,9 @@ app.post('/chat-with-file', upload.single('file'), async (req, res) => {
       fileContent = readFileContent(file.path);
     } catch (error) {
       // Clean up file
-      fs.unlinkSync(file.path);
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
       return res.status(400).json({ error: 'Could not read file. Please ensure it is a text file.' });
     }
     
@@ -394,7 +409,9 @@ app.post('/chat-with-file', upload.single('file'), async (req, res) => {
     console.log("File analysis response received");
     
     // Clean up uploaded file
-    fs.unlinkSync(file.path);
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
     
     // Send response back to client
     res.json({ response: botResponse });
@@ -468,6 +485,6 @@ app.get('/test', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log('Upload directory created/verified');
-  console.log('Appointments CSV file ready');
+  console.log('Upload directory created/verified at /tmp/uploads');
+  console.log('Appointments CSV file ready at /tmp/appointments.csv');
 });
