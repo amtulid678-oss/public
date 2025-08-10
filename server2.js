@@ -6,12 +6,6 @@ import fs from "fs";
 const app = express();
 const PORT = 3000;
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = '/tmp/uploads';
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 // Create appointments.csv file if it doesn't exist
 const csvFilePath = 'appointments.csv';
 if (!fs.existsSync(csvFilePath)) {
