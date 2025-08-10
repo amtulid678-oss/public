@@ -11,6 +11,9 @@
     "multer": "^2.0.2",
     "path": "^0.12.7"
   },
+  "scripts": {
+    "start": "node server2"
+  },
   "devDependencies": {
     "@types/node": "^20.19.9"
   }
