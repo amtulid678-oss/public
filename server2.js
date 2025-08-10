@@ -8,10 +8,6 @@ const PORT = 3000;
 
 // Create appointments.csv file if it doesn't exist
 const csvFilePath = 'appointments.csv';
-if (!fs.existsSync(csvFilePath)) {
-  const csvHeader = 'Date,Name,Email,Phone,Purpose,Appointment Time,Appointment Date,Status\n';
-  fs.writeFileSync(csvFilePath, csvHeader);
-}
 
 // Configure multer for file uploads
 const upload = multer({ 
